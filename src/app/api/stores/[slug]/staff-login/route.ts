@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { normalizePhone } from "@/lib/phone";
 import { checkPinAttempt, incrementPinAttempt, clearPinAttempts } from "@/lib/rate-limit";
 import { createStaffSession } from "@/lib/auth";
+import { staffLoginSchema } from "@/lib/validations/staff";
 
 /**
  * Custom staff PIN login — tenant-scoped under /api/stores/[slug]/staff-login
@@ -15,8 +16,14 @@ export async function POST(
 ) {
   try {
     const { slug } = params;
-    const body = await request.json();
-    const { phone: rawPhone, pin } = body;
+    const parsed = staffLoginSchema.safeParse(await request.json());
+    if (!parsed.success) {
+      return NextResponse.json(
+        { success: false, error: "Nomor HP dan PIN wajib diisi" },
+        { status: 400 }
+      );
+    }
+    const { phone: rawPhone, pin } = parsed.data;
 
     // 1. Find store by slug
     const store = await db.store.findUnique({
@@ -36,7 +43,7 @@ export async function POST(
 
     // 3. Find staff member by phone + store
     const staff = await db.staffMember.findFirst({
-      where: { storeId: store.id, user: { phone } },
+      where: { storeId: store.id, isActive: true, user: { phone } },
       include: { user: true, branch: true },
     });
 
@@ -67,15 +74,14 @@ export async function POST(
     }
 
     // 6. Create Better Auth session manually
-    const session = await createStaffSession(staff.userId);
+    const { cookie } = await createStaffSession(staff.userId);
 
     // 7. Clear attempts on success
     await clearPinAttempts(phone, staff.branchId);
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       data: {
-        sessionToken: session.token,
         user: {
           id: staff.userId,
           name: staff.user.name,
@@ -84,6 +90,11 @@ export async function POST(
         },
       },
     });
+    response.cookies.set(cookie.name, cookie.value, {
+      ...cookie.attributes,
+      sameSite: cookie.attributes.sameSite?.toString().toLowerCase() as "lax" | "strict" | "none" | undefined,
+    });
+    return response;
   } catch {
     return NextResponse.json(
       { success: false, error: "Login gagal" },

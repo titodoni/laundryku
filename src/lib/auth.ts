@@ -1,5 +1,6 @@
 import { betterAuth } from "better-auth";
-import { prismaAdapter } from "@better-auth/prisma-adapter";
+import { prismaAdapter } from "better-auth/adapters/prisma";
+import { makeSignature } from "better-auth/crypto";
 import { db } from "@/lib/db";
 
 /**
@@ -23,6 +24,14 @@ export const auth = betterAuth({
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      mapProfileToUser: (profile) => {
+        const email = profile.email?.trim().toLowerCase();
+        const fallbackName = email ? email.split("@")[0] : "Owner";
+        return {
+          email,
+          name: profile.name?.trim() || fallbackName,
+        };
+      },
     },
   },
   session: {
@@ -43,18 +52,53 @@ export const auth = betterAuth({
       },
     },
   },
+  databaseHooks: {
+    user: {
+      create: {
+        before: async (user) => {
+          const email = typeof user.email === "string" ? user.email.trim().toLowerCase() : user.email;
+          const fallbackName = email ? email.split("@")[0] : "Owner";
+          return {
+            data: {
+              ...user,
+              email,
+              name: typeof user.name === "string" && user.name.trim().length > 0 ? user.name.trim() : fallbackName,
+              phone: null,
+            },
+          };
+        },
+      },
+    },
+  },
 });
 
 /**
  * Create a staff session with shorter expiry (7 days).
- * Use this instead of auth.api.createSession for staff PIN login.
+ * Better Auth signs the session token cookie as `${token}.${signature}`.
  */
 export async function createStaffSession(userId: string) {
-  const session = await (auth.api as any).createSession({
-    body: {
+  const expiresAt = new Date(Date.now() + 60 * 60 * 24 * 7 * 1000);
+  const session = await db.session.create({
+    data: {
       userId,
-      expiresIn: 60 * 60 * 24 * 7, // 7 days for staff
+      token: crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, ""),
+      expiresAt,
     },
   });
-  return session;
+
+  const context = await auth.$context;
+  const cookie = context.authCookies.sessionToken;
+  const signedToken = `${session.token}.${await makeSignature(session.token, context.secret)}`;
+
+  return {
+    session,
+    cookie: {
+      name: cookie.name,
+      value: signedToken,
+      attributes: {
+        ...cookie.attributes,
+        maxAge: 60 * 60 * 24 * 7,
+      },
+    },
+  };
 }

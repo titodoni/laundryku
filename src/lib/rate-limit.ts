@@ -44,6 +44,8 @@ export async function checkPinAttempt(phone: string, branchId: string) {
         reason: "Terlalu banyak percobaan. Coba lagi dalam 15 menit.",
       };
     }
+
+    await db.pinAttempt.delete({ where: { id: attempt.id } });
   }
 
   return { allowed: true, attempt };

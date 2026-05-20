@@ -32,6 +32,13 @@ export async function POST(request: Request) {
       );
     }
 
+    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+      return NextResponse.json(
+        { success: false, error: "Server upload not configured. Set BLOB_READ_WRITE_TOKEN in environment variables." },
+        { status: 500 }
+      );
+    }
+
     // 1. Upload new file FIRST
     const blob = await put(file.name, file, {
       access: "public",

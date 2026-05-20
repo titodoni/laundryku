@@ -1,14 +1,33 @@
-export default function OnboardingPage() {
+import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { OnboardingForm } from "./onboarding-form";
+
+export default async function OnboardingPage() {
+  const session = await auth.api.getSession({ headers: headers() });
+
+  if (!session?.user?.id) {
+    redirect("/register");
+  }
+
+  const existingStore = await db.store.findFirst({
+    where: { ownerId: session.user.id },
+    select: { slug: true },
+  });
+
+  if (existingStore) {
+    redirect(`/${existingStore.slug}/dashboard`);
+  }
+
   return (
     <main className="container flex min-h-screen max-w-2xl flex-col justify-center py-10">
       <p className="text-sm font-semibold text-primary">Onboarding</p>
       <h1 className="mt-2 text-3xl font-bold">Setup laundry pertama</h1>
       <p className="mt-3 text-sm text-muted-foreground">
-        Halaman ini disiapkan untuk wizard Store, Branch, layanan, pembayaran, staf, dan konfirmasi.
+        Lengkapi data toko, cabang, layanan awal, pembayaran, dan staf pertama.
       </p>
-      <div className="mt-6 rounded-2xl border bg-card p-6">
-        <p className="text-sm font-medium">Stage UI Kit berikutnya akan mengimpor wizard dari template dan menghubungkannya ke `POST /api/stores`.</p>
-      </div>
+      <OnboardingForm />
     </main>
   );
 }

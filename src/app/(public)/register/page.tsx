@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { RegisterForm } from "./register-form";
 
 export default function RegisterPage() {
   return (
@@ -6,11 +6,9 @@ export default function RegisterPage() {
       <p className="text-sm font-semibold text-primary">Daftar Owner</p>
       <h1 className="mt-2 text-3xl font-bold">Buat akun Laundryku</h1>
       <p className="mt-3 text-sm text-muted-foreground">
-        Integrasi Google OAuth akan dipasang pada Phase 1. Setelah login, owner masuk ke onboarding.
+        Masuk dengan akun Google pemilik usaha. Setelah itu, lengkapi setup toko pertama.
       </p>
-      <Link href="/onboarding" className="tap-target mt-6 inline-flex items-center justify-center rounded-md bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground">
-        Lanjut ke Onboarding
-      </Link>
+      <RegisterForm />
     </main>
   );
 }
