@@ -270,6 +270,12 @@ export const db =
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = db
 ```
 
+Catatan operasional:
+- App runtime harus tetap memakai `DATABASE_URL` pooled dari Neon. `DIRECT_URL` unpooled dipakai untuk migration dan Prisma CLI saja.
+- Jika muncul `PrismaClientKnownRequestError` `P2024` saat Better Auth atau route lain melakukan query, anggap itu masalah pool timeout lebih dulu, bukan bug auth flow.
+- Di checkout ini, `src/lib/db.ts` sudah di-hardening untuk Neon pooler: bila hostname mengandung `-pooler` dan URL belum punya param terkait, tambahkan fallback `pool_timeout=30` dan `connect_timeout=30`.
+- Logging query Prisma jangan dipaksa aktif setiap saat. Aktifkan hanya saat debugging lewat `PRISMA_LOG_QUERIES=true`.
+
 - [ ] Selesai
 
 ### STEP 1.2 — Setup Better Auth
@@ -510,10 +516,20 @@ API:
 GET  /api/stores/[slug]/staff
 POST /api/stores/[slug]/staff → cek free tier limit
 PATCH /api/stores/[slug]/staff/[id]
+POST /api/stores/[slug]/staff/[id]/reset-pin
 ```
 
-- [ ] Tambah staf bekerja
-- [ ] Free tier memblokir staf ke-2
+Catatan implementasi saat ini:
+- Owner-only, resolve store dari slug server-side, tidak pernah percaya `storeId` dari client.
+- PIN staf selalu di-hash dengan `bcryptjs`; `pinHash` tidak pernah dikirim ke frontend.
+- Trial (`TRIALING`) tetap full access; limit staf gratis berlaku untuk plan Free non-Pro setelah trial.
+- Guard limit staf ada di frontend dan backend, termasuk saat mengaktifkan kembali staf nonaktif.
+- Tombol `Aktifkan` harus nonaktif di UI saat limit staf gratis sudah tercapai, dengan pesan: `Batas staf gratis tercapai. Upgrade ke Pro untuk mengaktifkan staf tambahan.`
+- Label plan/status dan copy dashboard untuk owner harus tampil penuh dalam Bahasa Indonesia, bukan enum mentah.
+- Path create/update staf sudah dipendekkan agar tidak timeout di interactive transaction Neon.
+
+- [x] Tambah staf bekerja
+- [x] Free tier memblokir staf ke-2
 
 ### STEP 2.4 — Payment Methods
 
@@ -557,12 +573,12 @@ PATCH /api/stores/[slug]
 - [ ] Store settings termasuk SLA bisa diubah
 
 ### ✅ DONE GATE Phase 2
-- [ ] Services CRUD bekerja dengan multiplier Express
-- [ ] Staf tambah + PIN bekerja
-- [ ] Free tier blokir staf ke-2
+- [x] Services CRUD bekerja dengan multiplier Express
+- [x] Staf tambah + PIN bekerja
+- [x] Free tier blokir staf ke-2
 - [ ] QRIS + Logo re-upload bekerja
 - [ ] WhatsApp number dan SLA tersimpan
-- [ ] `npx tsc --noEmit` = 0 error
+- [x] `npx tsc --noEmit` = 0 error
 
 ```bash
 git add . && git commit -m "phase-2: services, staff, settings" && git push

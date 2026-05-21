@@ -108,20 +108,20 @@
 **Goal:** Owner configures services, staff, payment methods.
 
 ### Tasks
-- [ ] Dashboard layout with sidebar (including "Keuangan")
-- [ ] Services CRUD (including Express multiplier)
-- [ ] Staff management (CASHIER/OPERATOR/COURIER — no ADMIN role)
-- [ ] Free tier: block 2nd staff
+- [x] Dashboard layout with sidebar (including "Keuangan")
+- [x] Services CRUD (including Express multiplier)
+- [x] Staff management (CASHIER/OPERATOR/COURIER — no ADMIN role)
+- [x] Free tier: block 2nd staff, termasuk reaktivasi staf nonaktif di UI
 - [ ] Payment methods + QRIS re-upload
 - [ ] Branch settings (including WhatsApp number)
 - [ ] Store settings (logo re-upload, SLA hours)
 
 ### DONE Gate
-- [ ] Services CRUD with Express multiplier
-- [ ] Staff management with PIN
-- [ ] Free tier blocks 2nd staff
+- [x] Services CRUD with Express multiplier
+- [x] Staff management with PIN
+- [x] Free tier blocks 2nd staff, termasuk reaktivasi staf nonaktif di UI
 - [ ] SLA hours configurable
-- [ ] `npx tsc --noEmit` passes
+- [x] `npx tsc --noEmit` passes
 
 ---
 
