@@ -19,7 +19,12 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
     where: { slug: params.slug, ownerId: session.user.id },
     select: {
       name: true,
-      branches: { select: { name: true } },
+      branches: {
+        orderBy: {
+          createdAt: "asc",
+        },
+        select: { name: true },
+      },
       subscription: { select: { planType: true, status: true, trialEndsAt: true } },
     },
   });
@@ -29,26 +34,42 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
   }
 
   return (
-    <main className="container py-10">
-      <p className="text-sm font-semibold text-primary">Dashboard Owner</p>
-      <h1 className="mt-2 text-3xl font-bold">{store.name}</h1>
-      <p className="mt-3 text-sm text-muted-foreground">
-        Setup Phase 1 selesai. Dashboard lengkap masuk Phase 2.
-      </p>
-      <div className="mt-6 grid gap-3 sm:grid-cols-3">
-        <div className="rounded-md border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Cabang</p>
-          <p className="mt-1 text-2xl font-bold">{store.branches.length}</p>
-        </div>
-        <div className="rounded-md border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Plan</p>
-          <p className="mt-1 text-2xl font-bold">{store.subscription?.planType || "FREE"}</p>
-        </div>
-        <div className="rounded-md border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Status</p>
-          <p className="mt-1 text-2xl font-bold">{store.subscription?.status || "TRIALING"}</p>
+    <section className="grid gap-4 xl:grid-cols-[1.4fr_0.9fr]">
+      <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
+        <p className="text-sm font-semibold text-primary">Ringkasan dashboard</p>
+        <h1 className="mt-2 text-3xl font-bold tracking-tight">{store.name}</h1>
+        <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
+          Shell dashboard sudah aktif. Slice berikutnya akan mengisi ringkasan operasional, staf, layanan, dan pengaturan cabang.
+        </p>
+        <div className="mt-6 flex flex-wrap gap-2 text-xs">
+          <span className="rounded-full bg-primary-soft px-3 py-1 font-medium text-primary">
+            {store.subscription?.planType || "FREE"}
+          </span>
+          <span className="rounded-full bg-muted px-3 py-1 font-medium text-muted-foreground">
+            {store.subscription?.status || "TRIALING"}
+          </span>
+          <span className="rounded-full bg-success-soft px-3 py-1 font-medium text-success">
+            {store.branches.length} cabang siap
+          </span>
         </div>
       </div>
-    </main>
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
+        <div className="rounded-3xl border border-border bg-card p-5 shadow-sm">
+          <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Langkah berikutnya</p>
+          <p className="mt-2 text-sm font-semibold">Isi menu operasional per modul</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Ringkasan, Pesanan, Pelanggan, Staf, Layanan & Harga, Metode Pembayaran, dan Pengaturan Cabang akan diisi bertahap.
+          </p>
+        </div>
+        <div className="rounded-3xl border border-border bg-card p-5 shadow-sm">
+          <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Catatan phase</p>
+          <p className="mt-2 text-sm font-semibold">Billing masih future</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Menu Billing sengaja dikunci agar tidak terlihat seperti alur yang sudah selesai.
+          </p>
+        </div>
+      </div>
+    </section>
   );
 }

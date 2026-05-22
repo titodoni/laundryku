@@ -53,6 +53,26 @@ npx prisma studio            # DB GUI at localhost:5555
 - UI: shadcn/ui + Tailwind + Radix primitives.
 - `@/*` alias maps to `./src/*`.
 
+## Upload security (LOCKED)
+
+- Every upload MUST include a `purpose` field (`qris`, `store-logo`, `onboarding-logo`, `onboarding-qris`).
+- `qris` and `store-logo` require authenticated session + slug + owner ownership check.
+- Blob cleanup must only delete blobs belonging to the same store (check URL path contains `stores/{storeId}/`).
+- Onboarding uploads use `onboarding/` paths, no store ownership needed.
+- See `src/lib/upload.ts` for purpose list, path builders, and validation.
+
+## DB connection (LOCKED)
+
+- `src/lib/db.ts` uses standard `PrismaClient` singleton with `import "server-only"`.
+- Do NOT use `@prisma/adapter-neon` or `@neondatabase/serverless` — they require Node >=19.
+- Do NOT reference `WebSocket` or `neonConfig` in db.ts.
+- Environment format:
+  ```
+  DATABASE_URL="postgresql://user:pass@ep-xxx-pooler.r1.neon.tech/db?sslmode=require&connection_limit=1&pool_timeout=20"
+  DIRECT_URL="postgresql://user:pass@ep-xxx.r1.neon.tech/db?sslmode=require"
+  ```
+  `DATABASE_URL` = pooled (`-pooler` host). `DIRECT_URL` = direct (for Prisma CLI/migrations).
+
 ## Schema changes
 
 After any edit to `prisma/schema.prisma`:
@@ -77,3 +97,18 @@ Never run `npx prisma migrate reset` on production.
 | `RUNBOOK.md` | Step-by-step build guide with commands |
 | `PHASES.md` | Build phase order and done gates |
 | `UI_KIT_IMPORT_STAGES.md` | How to import UI Kit into Next.js |
+
+## Skills
+
+When working on Laundryku implementation, auditing, route correction, schema alignment, or phase work, use the `laundryku-codex-workflow.md` skill.
+
+Always read:
+- PRD.md
+- SCHEMA.md
+- PHASES.md
+- RUNBOOK.md
+
+Before coding, inspect and plan unless the task is very small.
+
+## UI/UX shell
+Use directory /Laundryku UI Kit for references UI/UX shell 

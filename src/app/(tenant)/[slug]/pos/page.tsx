@@ -1,6 +1,6 @@
-import { auth } from "@/lib/auth";
-import { db } from "@/lib/db";
-import { headers } from "next/headers";
+import { PosApp } from "@/components/pos/pos-app";
+import { getPosBootstrap, requireStaffRouteAccess } from "@/lib/pos";
+import { staffRoleLabels } from "@/lib/staff";
 import { redirect } from "next/navigation";
 
 type PosPageProps = {
@@ -10,35 +10,25 @@ type PosPageProps = {
 };
 
 export default async function PosPage({ params }: PosPageProps) {
-  const session = await auth.api.getSession({ headers: headers() });
-  if (!session?.user?.id) {
+  const accessResult = await requireStaffRouteAccess(params.slug);
+  if (!accessResult.ok) {
     redirect(`/${params.slug}/login`);
   }
 
-  const staff = await db.staffMember.findFirst({
-    where: {
-      userId: session.user.id,
-      isActive: true,
-      store: { slug: params.slug },
-    },
-    select: {
-      role: true,
-      branch: { select: { name: true } },
-      store: { select: { name: true } },
-    },
-  });
-
-  if (!staff) {
-    redirect(`/${params.slug}/login`);
-  }
+  const access = accessResult.access;
+  const bootstrap = await getPosBootstrap(access);
 
   return (
-    <main className="container py-10">
-      <p className="text-sm font-semibold text-primary">POS Staff</p>
-      <h1 className="mt-2 text-3xl font-bold">{staff.store.name}</h1>
-      <p className="mt-3 text-sm text-muted-foreground">
-        Masuk sebagai {staff.role} di {staff.branch.name}. POS order flow masuk Phase 3.
-      </p>
-    </main>
+    <PosApp
+      slug={params.slug}
+      branchId={access.branchId}
+      branchName={access.branchName}
+      storeName={access.storeName}
+      staffName={access.staffName}
+      staffRoleLabel={staffRoleLabels[access.staffRole]}
+      qrisImageUrl={access.storeQrisImageUrl}
+      services={bootstrap.services}
+      paymentMethods={bootstrap.paymentMethods}
+    />
   );
 }

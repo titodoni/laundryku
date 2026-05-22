@@ -87,6 +87,7 @@ export function OnboardingForm() {
 
     const formData = new FormData();
     formData.set("file", file);
+    formData.set("purpose", target === "logo" ? "onboarding-logo" : "onboarding-qris");
     setUploading(target);
     setError("");
 

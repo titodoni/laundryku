@@ -1,3 +1,5 @@
+import { LabelActions } from "@/components/pos/print-actions";
+import { MarkLabelPrinted } from "@/components/pos/mark-label-printed";
 import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
 
@@ -36,14 +38,6 @@ export default async function LabelPage({
 
   if (!order) notFound();
 
-  // Mark label as printed
-  if (!order.packagingLabelPrinted) {
-    await db.order.update({
-      where: { id: order.id },
-      data: { packagingLabelPrinted: true },
-    });
-  }
-
   // Group items by category for compact display
   const itemsByCategory: Record<string, number> = {};
   for (const item of order.items) {
@@ -60,18 +54,17 @@ export default async function LabelPage({
 
   return (
     <div className="mx-auto max-w-[80mm] p-2 font-mono text-sm">
+      <MarkLabelPrinted slug={slug} orderId={order.id} />
       {/* Order Number */}
       <div className="mb-2 border-b-2 border-black pb-1 text-center text-lg font-bold">
         {order.orderNumber}
       </div>
 
       {/* Customer */}
-      {order.customer && (
-        <div className="mb-2">
-          <p className="font-bold">{order.customer.name}</p>
-          {order.customer.phone && <p className="text-xs">{order.customer.phone}</p>}
-        </div>
-      )}
+      <div className="mb-2">
+        <p className="font-bold">{order.customer?.name ?? "Pelanggan Umum"}</p>
+        {order.customer?.phone ? <p className="text-xs">{order.customer.phone}</p> : null}
+      </div>
 
       {/* Items */}
       <div className="mb-2 border-y border-black py-1">
@@ -118,20 +111,7 @@ export default async function LabelPage({
       </div>
 
       {/* Print Button */}
-      <div className="no-print">
-        <button
-          onClick={() => window.print()}
-          className="w-full rounded bg-teal-600 px-4 py-2 text-white hover:bg-teal-700"
-        >
-          Cetak Label
-        </button>
-        <a
-          href={`/${slug}/orders/${orderNumber}/receipt`}
-          className="mt-2 block w-full rounded bg-gray-200 px-4 py-2 text-center text-gray-700 hover:bg-gray-300"
-        >
-          Lihat Struk
-        </a>
-      </div>
+      <LabelActions slug={slug} orderNumber={orderNumber} />
     </div>
   );
 }

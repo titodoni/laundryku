@@ -59,3 +59,19 @@
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   }
 }
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  @page {
+    size: 80mm auto;
+    margin: 4mm;
+  }
+}

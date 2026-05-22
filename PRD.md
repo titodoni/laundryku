@@ -168,6 +168,10 @@ If taken: "melati-clean-2", "melati-clean-3", etc.
    received → washing → drying → ironing → packing → ready → picked_up
 ```
 
+**Implementation note (accepted v1 detail):**
+- Internal API routes for POS use `/api/stores/[slug]/...`.
+- Current Phase 3 implementation allows any **active staff in the same branch** to create orders, update progress, settle DP, and cancel orders. Role labels remain for staffing, but Phase 3 permissions are branch-scoped.
+
 **Order number format:** `{BRANCH_CODE}-{YYMMDD}-{SEQ}` e.g. `MLT-260519-001`
 **Generation:** Atomic counter via `OrderCounter` table (not Serializable transaction).
 

@@ -10,6 +10,7 @@
 - Staff PIN login via custom API (`POST /api/stores/[slug]/staff-login`)
 - Rate-limited PIN: 5 attempts → 15-min lockout
 - Staff sessions: 7-day expiry (shared POS devices)
+- Prisma/Neon runtime hardening on auth path: `DATABASE_URL` stays pooled for app queries, `DIRECT_URL` stays unpooled for CLI, and `src/lib/db.ts` adds fallback `pool_timeout=30` plus `connect_timeout=30` for Neon `-pooler` URLs to reduce `P2024` during auth cold starts or short bursts
 
 ### Pages
 | Route | File | Status |
@@ -34,7 +35,7 @@
 - `src/lib/auth.ts` — Better Auth config + `createStaffSession()`
 - `src/lib/auth-client.ts` — Better Auth client
 - `src/lib/validations/store.ts` — Zod schemas for store creation
-- `src/lib/db.ts` — Prisma client singleton
+- `src/lib/db.ts` — Prisma client singleton + Neon pooled runtime timeout fallback
 - `src/lib/db-guard.ts` — Tenant-scoped query helper
 - `src/lib/rate-limit.ts` — Rate limiter (used by staff-login)
 - `src/lib/phone.ts` — Phone normalization

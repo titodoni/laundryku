@@ -8,6 +8,9 @@
     "build": "prisma generate && prisma migrate deploy && next build",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "verify:phase3": "node --import tsx scripts/verify-phase3-logic.ts",
+    "smoke:phase3:db": "node --import tsx scripts/smoke-phase3-db.ts",
+    "smoke:reset-registrations": "tsx scripts/reset-smoke-registration-db.ts",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",
     "prisma:studio": "prisma studio"

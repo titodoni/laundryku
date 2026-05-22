@@ -37,3 +37,14 @@ export const createStoreSchema = z.object({
 });
 
 export type CreateStoreInput = z.infer<typeof createStoreSchema>;
+
+export const updateStoreProfileSchema = z.object({
+  name: z.string().trim().min(2, "Nama toko wajib diisi").max(100, "Nama toko terlalu panjang"),
+  phone: z.string().trim().max(20, "Nomor HP terlalu panjang").optional().or(z.literal("")),
+  whatsappPhone: z.string().trim().max(20, "Nomor WhatsApp terlalu panjang").optional().or(z.literal("")),
+  address: z.string().trim().max(300, "Alamat terlalu panjang").optional().or(z.literal("")),
+  defaultSlaHours: z.coerce.number().int("SLA default wajib berupa angka bulat").min(0, "SLA default tidak boleh negatif"),
+  logoUrl: z.string().trim().url("URL logo tidak valid").optional().or(z.literal("")).nullable(),
+});
+
+export type UpdateStoreProfileInput = z.infer<typeof updateStoreProfileSchema>;

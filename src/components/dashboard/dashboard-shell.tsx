@@ -47,8 +47,8 @@ const navItems: NavItem[] = [
   { label: "Pelanggan", href: "customers", icon: Users, disabled: true, future: true },
   { label: "Staf", href: "staff", icon: UserCog },
   { label: "Layanan & Harga", href: "services", icon: Package2 },
-  { label: "Metode Pembayaran", href: "payment-methods", icon: CreditCard, disabled: true, future: true },
-  { label: "Cabang / Pengaturan Cabang", href: "branch", icon: Settings2, disabled: true, future: true },
+  { label: "Metode Pembayaran", href: "payment-methods", icon: CreditCard },
+  { label: "Cabang / Pengaturan Cabang", href: "branch", icon: Settings2 },
   { label: "Tagihan", href: "billing", icon: Wallet, disabled: true, future: true },
 ];
 

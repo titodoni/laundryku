@@ -253,27 +253,43 @@ git add . && git commit -m "phase-0: bootstrap complete" && git push
 
 **Tujuan:** Owner register Google → onboarding (logo + QRIS upload) → dashboard. Staff login PIN.
 
-### STEP 1.1 — Prisma Client Singleton
+### STEP 1.1 — Prisma Client Singleton (Node-18-Safe)
 
 Buat `src/lib/db.ts`:
 ```typescript
-import { PrismaClient } from "@prisma/client"
+import "server-only";
 
-const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined }
+import { PrismaClient } from "@prisma/client";
+
+const globalForPrisma = globalThis as unknown as {
+  prisma?: PrismaClient;
+};
 
 export const db =
   globalForPrisma.prisma ??
   new PrismaClient({
-    log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
-  })
+    log:
+      process.env.NODE_ENV === "development"
+        ? ["error", "warn"]
+        : ["error"],
+  });
 
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = db
+if (process.env.NODE_ENV !== "production") {
+  globalForPrisma.prisma = db;
+}
 ```
 
 Catatan operasional:
-- App runtime harus tetap memakai `DATABASE_URL` pooled dari Neon. `DIRECT_URL` unpooled dipakai untuk migration dan Prisma CLI saja.
-- Jika muncul `PrismaClientKnownRequestError` `P2024` saat Better Auth atau route lain melakukan query, anggap itu masalah pool timeout lebih dulu, bukan bug auth flow.
-- Di checkout ini, `src/lib/db.ts` sudah di-hardening untuk Neon pooler: bila hostname mengandung `-pooler` dan URL belum punya param terkait, tambahkan fallback `pool_timeout=30` dan `connect_timeout=30`.
+- **Wajib** `import "server-only"` — mencegah import dari client component.
+- Gunakan **standard PrismaClient**. Jangan pasang `@prisma/adapter-neon` atau `@neondatabase/serverless` — package itu butuh Node >=19 dan menyebabkan runtime crash.
+- Jangan panggil `neonConfig.webSocketConstructor` — WebSocket global tidak tersedia di Node 18.
+- App runtime harus tetap memakai `DATABASE_URL` pooled dari Neon (hostname mengandung `-pooler`). `DIRECT_URL` unpooled dipakai untuk migration dan Prisma CLI saja.
+- Di `.env`, pastikan `DATABASE_URL` pakai pooled connection:
+  ```
+  DATABASE_URL="postgresql://user:pass@ep-xxx-pooler.r1.neon.tech/db?sslmode=require&connection_limit=1&pool_timeout=20"
+  DIRECT_URL="postgresql://user:pass@ep-xxx.r1.neon.tech/db?sslmode=require"
+  ```
+  `connection_limit=1` mencegah pool exhaustion. `pool_timeout=20` timeout jika koneksi penuh.
 - Logging query Prisma jangan dipaksa aktif setiap saat. Aktifkan hanya saat debugging lewat `PRISMA_LOG_QUERIES=true`.
 
 - [ ] Selesai
@@ -576,9 +592,14 @@ PATCH /api/stores/[slug]
 - [x] Services CRUD bekerja dengan multiplier Express
 - [x] Staf tambah + PIN bekerja
 - [x] Free tier blokir staf ke-2
-- [ ] QRIS + Logo re-upload bekerja
-- [ ] WhatsApp number dan SLA tersimpan
+- [x] QRIS + Logo re-upload bekerja
+- [x] WhatsApp number dan SLA tersimpan
 - [x] `npx tsc --noEmit` = 0 error
+
+### Catatan Implementasi Phase 2
+- **Upload security:** Setiap upload wajib menyertakan `purpose` (`qris`, `store-logo`, dll). Upload QRIS/logo store butuh session owner + slug yang valid. Hapus blob lama hanya milik store yang sama.
+- **DB connection:** Menggunakan standard PrismaClient singleton + `server-only` guard. Tidak pakai Neon adapter. Node-18-safe.
+- **Risiko tersisa:** Neon cold start (~500ms), connection_limit mungkin perlu dinaikkan di production tinggi.
 
 ```bash
 git add . && git commit -m "phase-2: services, staff, settings" && git push
@@ -707,7 +728,7 @@ Buat `src/app/(tenant)/[slug]/orders/[orderNumber]/label/page.tsx`:
 
 Setelah label di-render:
 ```
-PATCH /api/stores/[slug]/orders/[id] → { packagingLabelPrinted: true }
+POST /api/stores/[slug]/orders/[id]/label-printed
 ```
 
 - [ ] Label page tampil compact
@@ -762,6 +783,49 @@ RECEIVED → WASHING → DRYING → IRONING → PACKING → READY → PICKED_UP
 - [ ] DP settlement + cancellation bekerja
 - [ ] `packagingLabelPrinted` tersimpan
 - [ ] `npx tsc --noEmit` = 0 error
+
+### Phase 3 Verification Order
+
+Jalankan verifikasi Phase 3 dalam urutan ini:
+
+```bash
+npx tsc --noEmit
+npm run verify:phase3
+npm run smoke:phase3:db
+```
+
+Kriteria lulus saat ini:
+- `npx tsc --noEmit` selesai tanpa error.
+- `npm run verify:phase3` mencetak `phase3 logic ok`.
+- `npm run smoke:phase3:db` mencetak `phase3 db smoke ok`.
+
+### Phase 3 Known Working Routes
+
+User-facing:
+- `/{slug}/pos`
+- `/{slug}/pos/orders`
+- `/{slug}/orders/[orderNumber]/receipt`
+- `/{slug}/orders/[orderNumber]/label`
+
+Internal API:
+- `GET /api/stores/[slug]/customers?q=`
+- `POST /api/stores/[slug]/customers`
+- `GET /api/stores/[slug]/orders?today=1&status=...`
+- `POST /api/stores/[slug]/orders`
+- `PATCH /api/stores/[slug]/orders/[id]/status`
+- `POST /api/stores/[slug]/orders/[id]/settle`
+- `POST /api/stores/[slug]/orders/[id]/cancel`
+- `POST /api/stores/[slug]/orders/[id]/label-printed`
+
+### Phase 3 Smoke Evidence
+- Real order number berhasil dibuat dengan format atomic counter, contoh `S07-260522-001`.
+- Total order berhasil dihitung dan dipersist, contoh `Rp 45.500`.
+- Smoke Neon dev DB lulus untuk create order, progress update, pelunasan DP, dan refund pembatalan.
+- QR code di receipt sudah mengarah ke contract route `/{slug}/orders/{orderCode}/track`; render halaman tracking tetap pekerjaan Phase 4.
+
+### Rollback Advice
+- Jangan rewrite logika POS/order yang sudah jalan jika `npx tsc --noEmit`, `npm run verify:phase3`, dan `npm run smoke:phase3:db` masih lulus.
+- Jika regression muncul, rollback secara sempit ke route atau helper Phase 3 yang gagal, bukan dengan mengganti ulang seluruh alur POS.
 
 ```bash
 git add . && git commit -m "phase-3: pos + receipt + label + settlement" && git push

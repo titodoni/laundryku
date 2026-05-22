@@ -1,3 +1,4 @@
+import { ReceiptActions } from "@/components/pos/print-actions";
 import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
 import { QRCodeSVG } from "qrcode.react";
@@ -64,12 +65,10 @@ export default async function ReceiptPage({
       </div>
 
       {/* Customer */}
-      {order.customer && (
-        <div className="mb-4">
-          <p className="font-semibold">{order.customer.name}</p>
-          <p className="text-xs text-gray-500">{order.customer.phone}</p>
-        </div>
-      )}
+      <div className="mb-4">
+        <p className="font-semibold">{order.customer?.name ?? "Pelanggan Umum"}</p>
+        {order.customer?.phone ? <p className="text-xs text-gray-500">{order.customer.phone}</p> : null}
+      </div>
 
       {/* Items */}
       <table className="mb-4 w-full text-left">
@@ -124,7 +123,7 @@ export default async function ReceiptPage({
         <div className="mb-4 text-xs text-gray-500">
           <p>
             Metode:{" "}
-            {order.payments[0]?.paymentMethod?.name ?? "N/A"}
+            {order.payments.at(-1)?.paymentMethod?.name ?? "N/A"}
           </p>
           <p>
             Tanggal:{" "}
@@ -148,20 +147,7 @@ export default async function ReceiptPage({
       </p>
 
       {/* Actions */}
-      <div className="no-print flex gap-2">
-        <button
-          onClick={() => window.print()}
-          className="flex-1 rounded bg-teal-600 px-4 py-2 text-white hover:bg-teal-700"
-        >
-          Cetak Struk
-        </button>
-        <a
-          href={`/${slug}/orders/${orderNumber}/label`}
-          className="flex-1 rounded bg-gray-200 px-4 py-2 text-center text-gray-700 hover:bg-gray-300"
-        >
-          Cetak Label
-        </a>
-      </div>
+      <ReceiptActions slug={slug} orderNumber={orderNumber} />
     </div>
   );
 }

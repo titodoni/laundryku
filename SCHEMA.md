@@ -590,6 +590,14 @@ model ActivityLog {
 }
 ```
 
+### Phase 3 Implementation Match
+
+- `Order.orderNumber` + `OrderCounter` mendukung format nomor order atomic per branch/date.
+- `Order.paymentStatus`, `paidAmount`, `remainingAmount`, dan `settledAt` cocok untuk flow `LUNAS`, `DP`, dan `BELUM_BAYAR`.
+- `Order.cancelledAt`, `cancelReason`, `deletedAt`, dan `Payment.amount` negatif cocok untuk flow pembatalan + refund.
+- `Order.packagingLabelPrinted` cocok dengan endpoint `POST /api/stores/[slug]/orders/[id]/label-printed`.
+- `Order.status` + `ActivityLog` cocok untuk pipeline progress Phase 3.
+
 ---
 
 ## Index Strategy Notes

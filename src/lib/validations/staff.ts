@@ -7,41 +7,53 @@ import { z } from "zod";
 export const staffRoleSchema = z.enum(["CASHIER", "OPERATOR", "COURIER"]);
 
 export const createStaffSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters").max(100),
+  name: z.string().trim().min(1, "Nama staf wajib diisi").max(100, "Nama staf terlalu panjang"),
   phone: z
     .string()
-    .min(8, "Phone number must be at least 8 digits")
-    .max(15, "Phone number must be at most 15 digits"),
+    .trim()
+    .min(8, "Nomor HP wajib diisi")
+    .max(20, "Nomor HP terlalu panjang"),
   role: staffRoleSchema,
   pin: z
     .string()
-    .length(6, "PIN must be exactly 6 digits")
-    .regex(/^\d{6}$/, "PIN must contain only digits"),
-  branchId: z.string().min(1, "Branch ID is required"),
+    .length(6, "PIN harus 6 digit")
+    .regex(/^\d{6}$/, "PIN harus berupa 6 digit angka"),
+  branchId: z.string().trim().min(1, "Cabang wajib dipilih"),
 });
 
 export const updateStaffSchema = z.object({
   name: z
     .string()
-    .min(2, "Name must be at least 2 characters")
-    .max(100)
+    .trim()
+    .min(1, "Nama staf wajib diisi")
+    .max(100, "Nama staf terlalu panjang")
+    .optional(),
+  phone: z
+    .string()
+    .trim()
+    .min(8, "Nomor HP wajib diisi")
+    .max(20, "Nomor HP terlalu panjang")
     .optional(),
   role: staffRoleSchema.optional(),
+  branchId: z.string().trim().min(1, "Cabang wajib dipilih").optional(),
   isActive: z.boolean().optional(),
-  newPin: z
+});
+
+export const resetStaffPinSchema = z.object({
+  pin: z
     .string()
-    .length(6, "PIN must be exactly 6 digits")
-    .regex(/^\d{6}$/, "PIN must contain only digits")
-    .optional(),
+    .length(6, "PIN harus 6 digit")
+    .regex(/^\d{6}$/, "PIN harus berupa 6 digit angka"),
 });
 
 export const staffLoginSchema = z.object({
   phone: z
     .string()
-    .min(8, "Phone number must be at least 8 digits")
-    .max(15, "Phone number must be at most 15 digits"),
+    .trim()
+    .min(8, "Nomor HP wajib diisi")
+    .max(20, "Nomor HP terlalu panjang"),
   pin: z
     .string()
-    .length(6, "PIN must be exactly 6 digits")
-    .regex(/^\d{6}$/, "PIN must contain only digits"),
+    .length(6, "PIN harus 6 digit")
+    .regex(/^\d{6}$/, "PIN harus berupa 6 digit angka"),
 });

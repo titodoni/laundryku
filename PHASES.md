@@ -112,16 +112,67 @@
 - [x] Services CRUD (including Express multiplier)
 - [x] Staff management (CASHIER/OPERATOR/COURIER — no ADMIN role)
 - [x] Free tier: block 2nd staff, termasuk reaktivasi staf nonaktif di UI
-- [ ] Payment methods + QRIS re-upload
-- [ ] Branch settings (including WhatsApp number)
-- [ ] Store settings (logo re-upload, SLA hours)
+- [x] Payment methods + QRIS re-upload
+- [x] Branch settings (including WhatsApp number)
+- [x] Store settings (logo re-upload, SLA hours)
 
 ### DONE Gate
 - [x] Services CRUD with Express multiplier
 - [x] Staff management with PIN
 - [x] Free tier blocks 2nd staff, termasuk reaktivasi staf nonaktif di UI
-- [ ] SLA hours configurable
+- [x] SLA hours configurable
+- [x] QRIS + Logo re-upload via `api/upload`
+- [x] WhatsApp number and SLA tersimpan
 - [x] `npx tsc --noEmit` passes
+
+### Implemented Routes (Phase 2)
+
+| Route | Description |
+|-------|-------------|
+| `/{slug}/dashboard` | Analytics dashboard |
+| `/{slug}/dashboard/services` | Service CRUD with Express multiplier |
+| `/{slug}/dashboard/staff` | Staff management + PIN + free tier guard |
+| `/{slug}/dashboard/payment-methods` | Payment method toggles + QRIS upload |
+| `/{slug}/dashboard/branch` | Branch settings (name, code, address, phone, WhatsApp) |
+| `/{slug}/dashboard/settings` | Store settings (name, logo re-upload, SLA hours) |
+
+### APIs
+
+| Method | Route | Purpose |
+|--------|-------|---------|
+| GET/POST | `api/stores/[slug]/services` | List / create service |
+| PATCH/DELETE | `api/stores/[slug]/services/[id]` | Update / soft-delete service |
+| GET/POST | `api/stores/[slug]/staff` | List / create staff |
+| PATCH | `api/stores/[slug]/staff/[id]` | Update staff |
+| POST | `api/stores/[slug]/staff/[id]/reset-pin` | Admin PIN reset |
+| GET/PATCH | `api/stores/[slug]/payment-methods/[id]` | Toggle method |
+| PATCH | `api/stores/[slug]` | Update store profile (name, logo, SLA, WhatsApp) |
+| GET/PATCH | `api/stores/[slug]/branches/[id]` | Update branch |
+| POST | `api/upload` | Image upload (purpose, slug, owner guard) |
+
+### Upload Security Rule (LOCKED)
+- Upload requires `purpose` field (`qris`, `store-logo`, `onboarding-logo`, `onboarding-qris`).
+- `qris` and `store-logo` require authenticated session + `slug` param + owner/admin ownership validation.
+- Blob cleanup: only delete blobs belonging to the same store (detected via URL pattern matching `stores/{storeId}/`).
+- Onboarding uploads (`onboarding-logo`, `onboarding-qris`) require no store yet; they are moved to `onboarding/{userId}/` paths.
+- Max file size: 2 MB. Image types only.
+- See `src/lib/upload.ts` for purpose list and path builders.
+
+### DB Connection Rule (LOCKED)
+- `src/lib/db.ts` uses standard `PrismaClient` singleton — no Neon adapter, no WebSocket.
+- Protected by `import "server-only"` — cannot be imported from client components.
+- Node-18-safe: no dependency on global `WebSocket` or `@neondatabase/serverless`.
+- Environment variables:
+  ```
+  DATABASE_URL="postgresql://user:pass@ep-xxx-pooler.r1.neon.tech/db?sslmode=require&connection_limit=1&pool_timeout=20"
+  DIRECT_URL="postgresql://user:pass@ep-xxx.r1.neon.tech/db?sslmode=require"
+  ```
+  `DATABASE_URL` uses **pooled** host (with `-pooler`). `DIRECT_URL` uses **direct** host (for migrations).
+
+### Remaining Risks
+- **Neon cold start:** First DB query after idle suspension adds ~500ms latency. Acceptable for v1.
+- **Connection pool tuning:** `connection_limit=1` prevents pool exhaustion in dev. Under production concurrency, may need increase based on Vercel function scaling.
+- **`npm run build` still times out locally** — owner builds via Vercel deploy.
 
 ---
 
@@ -129,25 +180,60 @@
 **Goal:** Staff creates orders, accepts payments, prints receipts + labels.
 
 ### Tasks
-- [ ] POS page shell with auth guard
-- [ ] Customer search + "Pelanggan Umum"
-- [ ] Service grid (Kiloan/Satuan/Express/Addon tabs)
-- [ ] Express price: kiloanBasePrice × multiplier
-- [ ] Payment step: Lunas/DP/Belum Bayar
-- [ ] Order creation API (atomic OrderCounter, server-side price calc, SLA-based estimatedReadyAt)
-- [ ] Receipt page with QR code
-- [ ] Packaging label page (print-optimized CSS)
-- [ ] Order status updates (valid transitions enforced)
-- [ ] DP settlement (`POST /orders/[id]/settle`, set `settledAt`)
-- [ ] Order cancellation (`POST /orders/[id]/cancel`, set `cancelledAt` + `cancelReason` + `deletedAt`, negative Payment)
+- [x] POS page shell with auth guard
+- [x] Customer search + "Pelanggan Umum"
+- [x] Service grid (Kiloan/Satuan/Express/Addon tabs)
+- [x] Express price: kiloanBasePrice × multiplier
+- [x] Payment step: Lunas/DP/Belum Bayar
+- [x] Order creation API (atomic OrderCounter, server-side price calc, SLA-based estimatedReadyAt)
+- [x] Receipt page with QR code
+- [x] Packaging label page (print-optimized CSS)
+- [x] Order status updates (valid transitions enforced)
+- [x] DP settlement (`POST /orders/[id]/settle`, set `settledAt`)
+- [x] Order cancellation (`POST /orders/[id]/cancel`, set `cancelledAt` + `cancelReason` + `deletedAt`, negative Payment)
 
 ### DONE Gate
-- [ ] Full order cycle: create → pay → receipt → label → status
-- [ ] Express price = multiplier × base price
-- [ ] Order number via atomic counter
-- [ ] Free tier blocks 11th order
-- [ ] DP settlement + cancellation work
-- [ ] `npx tsc --noEmit` passes
+- [x] Full order cycle: create → pay → receipt → label → status
+- [x] Express price = multiplier × base price
+- [x] Order number via atomic counter
+- [x] Free tier blocks 11th order
+- [x] DP settlement + cancellation work
+- [x] `npx tsc --noEmit` passes
+
+### Implemented Routes (Phase 3)
+
+| Route | Description |
+|-------|-------------|
+| `/{slug}/pos` | Staff POS flow with customer lookup, service tabs, payment step, and order submit |
+| `/{slug}/pos/orders` | Daftar pesanan hari ini + progress update + DP settlement + cancellation |
+| `/{slug}/orders/[orderNumber]/receipt` | Struk order dengan QR code tracking |
+| `/{slug}/orders/[orderNumber]/label` | Label packaging print 80mm |
+
+### APIs
+
+| Method | Route | Purpose |
+|--------|-------|---------|
+| GET/POST | `api/stores/[slug]/customers` | Search / create customer inline dari POS |
+| GET/POST | `api/stores/[slug]/orders` | List order hari ini / create order |
+| PATCH | `api/stores/[slug]/orders/[id]/status` | Update status valid sesuai pipeline |
+| POST | `api/stores/[slug]/orders/[id]/settle` | Pelunasan order DP |
+| POST | `api/stores/[slug]/orders/[id]/cancel` | Batalkan pesanan + refund negatif |
+| POST | `api/stores/[slug]/orders/[id]/label-printed` | Tandai label sudah dicetak |
+
+### Verification
+
+```bash
+npx tsc --noEmit
+npm run verify:phase3
+npm run smoke:phase3:db
+```
+
+### Evidence
+- `npm run verify:phase3` lulus untuk pricing express, payment-state mapping, validasi settlement/cancel, valid transition, dan free-tier order ke-11.
+- `npm run smoke:phase3:db` lulus pada Neon dev DB.
+- Smoke menghasilkan nomor order nyata dengan format atomic counter, contoh `S07-260522-001`.
+- Smoke menghitung dan menyimpan total nyata, contoh `Rp 45.500`.
+- QR code di struk sudah membentuk target route contract `/{slug}/orders/{orderCode}/track`; halaman tracking-nya tetap masuk Phase 4.
 
 ---
 
@@ -240,7 +326,7 @@
 |-------|-------------|------------|
 | 0 | Bootstrap | Running repo + DB connected |
 | 1 | Auth + Store | Owner registers, staff PIN login |
-| 2 | Settings | Services (with multiplier), staff, payment methods |
+| 2 | Settings | ✅ Services (with multiplier), staff, payment methods, branch, store settings |
 | 3 | POS | Full order lifecycle + atomic counter + settlement |
 | 4 | Tracking + Analytics | Customer tracking, owner dashboard |
 | 4A | Finance | Cash basis P&L, expenses, export |
