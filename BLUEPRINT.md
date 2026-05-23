@@ -289,6 +289,37 @@ await db.$transaction([
 ])
 ```
 
+### 4.7 Order Lifecycle (Phase 3.5)
+
+**Decision:** Operational progress is simplified and separated from payment.
+
+```
+RECEIVED -> PROCESS -> READY -> PICKED_UP / DELIVERED -> CLOSED
+```
+
+- `paymentStatus` remains separate: `UNPAID | PARTIAL | PAID | REFUNDED`
+- `CLOSED` is administrative finalization only, after handoff is complete
+- `CANCELLED` remains a separate terminal flow through the cancel endpoint
+- Legacy statuses `WASHING | DRYING | IRONING | PACKING` are migrated to `PROCESS`
+
+**Valid transitions**
+
+```typescript
+RECEIVED -> PROCESS | CANCELLED
+PROCESS -> READY | CANCELLED
+READY -> PICKED_UP | DELIVERED
+PICKED_UP -> CLOSED
+DELIVERED -> CLOSED
+CLOSED -> terminal
+CANCELLED -> terminal
+```
+
+Each status change must:
+- update `Order.status`
+- preserve `paymentStatus` as its own concern
+- log `order.status_changed` to `ActivityLog`
+- keep handoff history visible on public tracking via real logs first, fallback timestamps second
+
 ---
 
 ## 5. AUTHENTICATION & AUTHORIZATION
@@ -539,15 +570,36 @@ TRIALING ──(7 days)──→ LIMITED (no payment)
 //    - ActivityLog.create({ action: "payment.settled" })
 ```
 
-### 8.3 Customer Tracking
+### 8.3 Order Progress Update
+
+```typescript
+// PATCH /api/stores/[slug]/orders/[id]/status
+// Input: { newStatus, notes? }
+// 1. Zod validate against simplified lifecycle enum
+// 2. Reject direct CANCELLED here; use cancel endpoint
+// 3. Normalize legacy DB statuses before transition checks
+// 4. Validate transition:
+//    RECEIVED -> PROCESS
+//    PROCESS -> READY
+//    READY -> PICKED_UP | DELIVERED
+//    PICKED_UP | DELIVERED -> CLOSED
+// 5. Set completedAt when handoff happens (PICKED_UP or DELIVERED)
+// 6. $transaction:
+//    - Order.update({ status, completedAt })
+//    - ActivityLog.create({ action: "order.status_changed", details: { previousStatus, nextStatus, notes } })
+```
+
+### 8.4 Customer Tracking
 
 ```typescript
 // GET /api/stores/[slug]/orders/[orderCode]/track?phone=62xxxx
 // Rate limited: 30 req/min/IP
 // 1. Find order by orderNumber
 // 2. If order.customerId === null: allow (walk-in, no phone check)
-// 3. If order has customer: valirder has customer: validate phone match (normalize comparison)
-// 4. Return sanitized order data (no internal IDs)
+// 3. If order has customer: validate phone match (normalize comparison)
+// 4. Build "Riwayat Pesanan" timeline from ActivityLog first
+// 5. If old logs are incomplete, derive PROCESS/READY/HANDOFF/CLOSED from timestamps + current status
+// 6. Return sanitized order data (no internal IDs)
 ```
 
 ---

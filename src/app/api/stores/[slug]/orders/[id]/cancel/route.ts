@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { getCancellationState, validateCancellation } from "@/lib/order-logic";
+import { normalizeOrderStatus } from "@/lib/order-status";
 import { requireStaffRouteAccess, serializeOrder } from "@/lib/pos";
 import { cancelOrderSchema } from "@/lib/validations/order";
 import { NextResponse } from "next/server";
@@ -51,13 +52,14 @@ export async function POST(
     return NextResponse.json({ success: false, error: "Pesanan tidak ditemukan" }, { status: 404 });
   }
 
-  const cancellationError = validateCancellation(order.status);
+  const normalizedStatus = normalizeOrderStatus(order.status);
+  const cancellationError = validateCancellation(normalizedStatus);
   if (cancellationError) {
     return NextResponse.json({ success: false, error: cancellationError }, { status: 409 });
   }
 
   const cancelledAt = new Date();
-  const nextCancellation = getCancellationState(order.status, order.paidAmount, parsed.data.reason);
+  const nextCancellation = getCancellationState(normalizedStatus, order.paidAmount, parsed.data.reason);
 
   const updated = await db.$transaction(async (tx) => {
     if (nextCancellation.refundAmount < 0) {

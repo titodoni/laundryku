@@ -1,4 +1,5 @@
 import { BranchSettingsManager } from "@/components/dashboard/branch-settings-manager";
+import { SectionTabs } from "@/components/imported-ui";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { headers } from "next/headers";
@@ -57,6 +58,14 @@ export default async function BranchSettingsPage({ params }: BranchSettingsPageP
           Atur informasi outlet dan profil operasional laundry.
         </p>
       </div>
+
+      <SectionTabs
+        tabs={[
+          { href: `/${params.slug}/dashboard/settings`, label: "Organisasi" },
+          { href: `/${params.slug}/dashboard/settings/branch`, label: "Cabang" },
+          { href: `/${params.slug}/dashboard/settings/payment-methods`, label: "Metode Bayar" },
+        ]}
+      />
 
       <BranchSettingsManager
         slug={params.slug}

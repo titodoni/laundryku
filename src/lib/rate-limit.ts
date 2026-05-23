@@ -13,11 +13,30 @@ import { Redis } from "@upstash/redis";
  * Redis.fromEnv() is never called and Ratelimit exports are null.
  */
 
-const hasRedis =
+const hasRedisUrl =
   typeof process.env.UPSTASH_REDIS_REST_URL === "string" &&
   process.env.UPSTASH_REDIS_REST_URL.length > 0;
 
-const redis = hasRedis ? Redis.fromEnv() : null;
+const hasRedisToken =
+  typeof process.env.UPSTASH_REDIS_REST_TOKEN === "string" &&
+  process.env.UPSTASH_REDIS_REST_TOKEN.length > 0;
+
+function createRedisClient() {
+  if (!hasRedisUrl || !hasRedisToken) {
+    return null;
+  }
+
+  try {
+    return Redis.fromEnv();
+  } catch (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.error("[rate-limit] failed to initialize Upstash Redis", error);
+    }
+    return null;
+  }
+}
+
+const redis = createRedisClient();
 
 /** Public tracking API: 30 requests per IP per minute */
 export const trackingRatelimit = redis

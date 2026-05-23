@@ -266,13 +266,11 @@ model PaymentMethod {
 
 enum OrderStatus {
   RECEIVED
-  WASHING
-  DRYING
-  IRONING
-  PACKING
+  PROCESS
   READY
   PICKED_UP
   DELIVERED
+  CLOSED
   CANCELLED
 }
 

@@ -2,6 +2,7 @@
 
 import { authClient } from "@/lib/auth-client";
 import { Chrome } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 
 export function RegisterForm() {
@@ -38,7 +39,17 @@ export function RegisterForm() {
           onChange={(event) => setAccepted(event.target.checked)}
           className="mt-1 size-4 rounded border-input"
         />
-        <span>Saya menyetujui syarat layanan dan kebijakan privasi Laundryku.</span>
+        <span>
+          Saya menyetujui{" "}
+          <Link href="/syarat-layanan" className="underline hover:text-foreground">
+            syarat layanan
+          </Link>{" "}
+          dan{" "}
+          <Link href="/kebijakan-privasi" className="underline hover:text-foreground">
+            kebijakan privasi
+          </Link>{" "}
+          LaundryKU.
+        </span>
       </label>
       <button
         type="button"

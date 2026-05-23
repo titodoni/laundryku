@@ -1,4 +1,5 @@
 import { PaymentMethodsManager } from "@/components/dashboard/payment-methods-manager";
+import { SectionTabs } from "@/components/imported-ui";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { serializePaymentMethod } from "@/lib/payment-methods";
@@ -43,6 +44,14 @@ export default async function PaymentMethodsPage({ params }: PaymentMethodsPageP
           Atur metode pembayaran yang tersedia untuk pelanggan.
         </p>
       </div>
+
+      <SectionTabs
+        tabs={[
+          { href: `/${params.slug}/dashboard/settings`, label: "Organisasi" },
+          { href: `/${params.slug}/dashboard/settings/branch`, label: "Cabang" },
+          { href: `/${params.slug}/dashboard/settings/payment-methods`, label: "Metode Bayar" },
+        ]}
+      />
 
       <PaymentMethodsManager
         slug={params.slug}

@@ -43,13 +43,14 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   { label: "Ringkasan", href: "", icon: LayoutDashboard },
-  { label: "Pesanan", href: "orders", icon: Receipt, disabled: true, future: true },
-  { label: "Pelanggan", href: "customers", icon: Users, disabled: true, future: true },
+  { label: "Pesanan", href: "../pos/orders", icon: Receipt },
+  { label: "Pelanggan", href: "customers", icon: Users },
   { label: "Staf", href: "staff", icon: UserCog },
   { label: "Layanan & Harga", href: "services", icon: Package2 },
-  { label: "Metode Pembayaran", href: "payment-methods", icon: CreditCard },
-  { label: "Cabang / Pengaturan Cabang", href: "branch", icon: Settings2 },
-  { label: "Tagihan", href: "billing", icon: Wallet, disabled: true, future: true },
+  { label: "Metode Pembayaran", href: "settings/payment-methods", icon: CreditCard },
+  { label: "Pengaturan Cabang", href: "settings/branch", icon: Settings2 },
+  { label: "Keuangan", href: "finance", icon: Wallet },
+  { label: "Tagihan", href: "billing", icon: Wallet },
 ];
 
 function getInitials(name: string) {
@@ -62,7 +63,11 @@ function getInitials(name: string) {
 }
 
 function isActivePath(pathname: string, basePath: string, href: string) {
-  const target = href ? `${basePath}/${href}` : basePath;
+  const target = href.startsWith("../")
+    ? `/${basePath.split("/").filter(Boolean).slice(0, 1).join("/")}/${href.replace("../", "")}`
+    : href
+      ? `${basePath}/${href}`
+      : basePath;
   return pathname === target || pathname.startsWith(`${target}/`);
 }
 
@@ -194,7 +199,7 @@ export function DashboardShell({
             return (
               <Link
                 key={item.label}
-                href={item.href ? `${basePath}/${item.href}` : basePath}
+                href={item.href.startsWith("../") ? `/${slug}/${item.href.replace("../", "")}` : item.href ? `${basePath}/${item.href}` : basePath}
                 className={cn(
                   "flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition",
                   active

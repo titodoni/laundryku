@@ -1,4 +1,4 @@
-# AGENTS.md — Laundryku
+# AGENTS.md — LaundryKU
 
 SaaS POS for Indonesian laundry businesses. Next.js 14 App Router + Prisma + Neon PostgreSQL + Better Auth + Midtrans Snap.
 
@@ -25,10 +25,47 @@ npx prisma studio            # DB GUI at localhost:5555
 ## Architecture
 
 - **Two codebases in one repo:** Main Next.js app at root. UI Kit reference in `Laundryku UI Kit/` (Vite+React, not the real app).
-- **Route groups:** `(public)` for landing/register/onboarding, `(tenant)/[slug]` for dashboard/POS.
+- **Route groups:** `(public)` for landing/register/onboarding/legal, `(tenant)/[slug]` for dashboard/POS.
 - **Tenant isolation:** Every DB query on tenant-scoped tables MUST include `storeId`. Use `storeScope()` from `src/lib/db-guard.ts`.
 - **Subscription is SSOT:** Plan type and status live on `Subscription` model, NOT on `Store`. Never add `planType` to Store.
 - **Soft delete:** Use `deletedAt` DateTime?. Never hard-delete Orders, Customers, Payments, or Expenses.
+
+## Landing page structure (`src/app/(public)/page.tsx`)
+
+The landing page has 8 sections (no duplicate nav header):
+
+| # | Section | Details |
+|---|---------|---------|
+| 1 | **Hero** | Headline: "Satu Aplikasi, Semua Urusan Laundry Tertata". Mock dashboard with static numbers (Rp 2.340.000, 24 orders, 142 kg, MLT-260521-007, Pak Agus 7.5kg). CTAs → `/register`. |
+| 2 | **Social Proof** | Badge "Dipercaya ratusan laundry kiloan". 3 trust cards: Tanpa Instalasi, Setup 5 Menit, Support Lokal. |
+| 3 | **Pain Points** | 3 problem cards: catatan hilang, hitung omset ribet, pelanggan nanya status. |
+| 4 | **How It Works** | 4 steps: ① Daftar → ② Setup → ③ Transaksi → ④ Laporan. CTA → `/register`. |
+| 5 | **Features** (`#fitur`) | 6 feature cards (Kasir, Struk, Pelanggan, Keuangan, Multi Role, Tracking). 3-col grid. |
+| 6 | **Pricing** (`#harga`) | Free (Rp0/bulan), Pro (Rp65.000/bulan). All routes → `/register`. LOCKED — do not change prices, tiers, or button targets. |
+| 7 | **FAQ** (`#faq`) | 5 questions in `<details>` accordion. Topics: HP compat, thermal print, data security, multi-branch, Pro payment. |
+| 8 | **Closing CTA** | Gradient banner. Headline: "Siap Mengubah Cara Mengelola Laundry?" CTAs → `/register`. |
+
+## Legal pages
+
+| Route | File | Content |
+|-------|------|---------|
+| `/syarat-layanan` | `src/app/(public)/syarat-layanan/page.tsx` | 10 articles: Definitions, User Obligations, Limitations, Payment & Subscription (Rp65.000/mo), Termination, Liability, Indonesian Law, Contact. |
+| `/kebijakan-privasi` | `src/app/(public)/kebijakan-privasi/page.tsx` | 9 articles: Data Collected, Usage, Storage & Security, Third-party Sharing, User Rights (access/correct/delete), Cookies, 30-day Retention, Contact. |
+| `/keamanan-data` | `src/app/(public)/keamanan-data/page.tsx` | 10 articles: TLS 1.3 + AES-256, Cloud Infrastructure, Access Control (MFA, least privilege), Backup & Recovery, Physical Security, Indonesian Regulation Compliance, 72-hour Incident Response, Contact. |
+
+All legal pages: back-to-home link, metadata for SEO, formal Indonesian legal structure. Entity name: **LaundryKU**.
+
+## Footer (`src/app/(public)/layout.tsx`)
+
+Single horizontal row:
+- Left: Logo + brand + © 2026
+- Right: nav links (Fitur, Harga, FAQ, Syarat, Privasi, Keamanan)
+- Legal links (`/syarat-layanan`, `/kebijakan-privasi`, `/keamanan-data`) visible on desktop, two hidden on mobile.
+
+## Brand naming
+
+- Use **LaundryKU** (capital K, capital U) for brand references in UI.
+- File names, schemas, and internal code use lowercase `laundryku` convention.
 
 ## Financial rules
 

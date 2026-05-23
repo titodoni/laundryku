@@ -12,6 +12,7 @@
     --popover-foreground: 222 47% 11%;
     --primary: 217 91% 55%;
     --primary-foreground: 0 0% 100%;
+    --primary-glow: 213 94% 68%;
     --primary-soft: 217 95% 96%;
     --secondary: 210 40% 96%;
     --secondary-foreground: 222 47% 11%;
@@ -25,6 +26,8 @@
     --warning: 38 92% 50%;
     --warning-foreground: 30 60% 15%;
     --warning-soft: 48 96% 92%;
+    --info: 199 89% 48%;
+    --info-foreground: 0 0% 100%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
     --destructive-soft: 0 86% 96%;
@@ -32,6 +35,20 @@
     --input: 214 32% 91%;
     --ring: 217 91% 55%;
     --radius: 0.75rem;
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
+    --gradient-hero: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--info)) 100%);
+    --gradient-soft: linear-gradient(180deg, hsl(var(--primary-soft)) 0%, hsl(var(--card)) 100%);
+    --shadow-sm: 0 1px 2px 0 hsl(var(--primary) / 0.05);
+    --shadow-md: 0 4px 12px -2px hsl(var(--primary) / 0.08);
+    --shadow-glow: 0 8px 24px -8px hsl(var(--primary) / 0.35);
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 222 30% 25%;
+    --sidebar-primary: 217 91% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 217 95% 96%;
+    --sidebar-accent-foreground: 217 91% 35%;
+    --sidebar-border: 214 32% 92%;
+    --sidebar-ring: 217 91% 55%;
   }
 
   * {
@@ -57,6 +74,40 @@
     background: #fff;
     color: #000;
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+}
+
+@layer utilities {
+  .bg-gradient-primary {
+    background-image: var(--gradient-primary);
+  }
+
+  .bg-gradient-hero {
+    background-image: var(--gradient-hero);
+  }
+
+  .bg-gradient-soft {
+    background-image: var(--gradient-soft);
+  }
+
+  .shadow-elegant {
+    box-shadow: var(--shadow-md);
+  }
+
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+
+  .shadow-soft {
+    box-shadow: var(--shadow-sm);
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
   }
 }
 

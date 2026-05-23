@@ -100,6 +100,7 @@ assert.deepEqual(getSettlementState(15000, 35000), {
 
 assert.equal(validateCancellation("RECEIVED"), null);
 assert.equal(validateCancellation("DELIVERED"), "Pesanan ini tidak bisa dibatalkan lagi");
+assert.equal(validateCancellation("CLOSED"), "Pesanan ini tidak bisa dibatalkan lagi");
 assert.deepEqual(getCancellationState("READY", 15000, "  Pelanggan batal  "), {
   status: "CANCELLED",
   cancelReason: "Pelanggan batal",
@@ -152,10 +153,14 @@ assert.deepEqual(
   { allowed: true },
 );
 
-assert.equal(isValidTransition("RECEIVED", "WASHING"), true);
+assert.equal(isValidTransition("RECEIVED", "PROCESS"), true);
+assert.equal(isValidTransition("PROCESS", "READY"), true);
 assert.equal(isValidTransition("READY", "PICKED_UP"), true);
 assert.equal(isValidTransition("READY", "DELIVERED"), true);
+assert.equal(isValidTransition("PICKED_UP", "CLOSED"), true);
+assert.equal(isValidTransition("DELIVERED", "CLOSED"), true);
 assert.equal(isValidTransition("RECEIVED", "READY"), false);
 assert.equal(isValidTransition("PICKED_UP", "READY"), false);
+assert.equal(isValidTransition("CLOSED", "READY"), false);
 
 console.log("phase3 logic ok");

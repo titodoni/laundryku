@@ -126,7 +126,7 @@ Isi `.env.local`:
 
 ```
 # Neon
-DATABASE_URL="postgresql://USER:PASS@HOST/laundryku?sslmode=require"
+DATABASE_URL="postgresql://USER:PASS@HOST/laundryku?sslmode=require&connection_limit=1&pool_timeout=20"
 DIRECT_URL="postgresql://USER:PASS@HOST/laundryku?sslmode=require"
 
 # Google OAuth
@@ -167,6 +167,12 @@ echo ".env.local" >> .gitignore
 - [ ] `.env.local` terisi semua
 - [ ] `.env.example` ada tanpa nilai
 - [ ] `.env.local` masuk `.gitignore`
+
+Catatan Neon + Prisma:
+- Untuk local dev dan Vercel/serverless, gunakan pooled `DATABASE_URL` dengan `connection_limit=1&pool_timeout=20`.
+- `connection_limit=1` menekan pool exhaustion saat Next.js dev mode membuka banyak request paralel.
+- `pool_timeout=20` memberi waktu tunggu yang lebih aman saat pool penuh sementara.
+- `DIRECT_URL` tetap pakai host direct non-pooler untuk Prisma CLI dan migrasi.
 
 ### STEP 0.7 — Buat Folder Structure
 
@@ -305,6 +311,13 @@ Buat `src/lib/auth.ts` dengan:
 - Prisma adapter
 - Session: httpOnly cookie, persistent
 
+Catatan testing lokal auth:
+- Owner dan staf saat ini berbagi cookie session Better Auth yang sama dalam satu browser profile.
+- Jika login owner dan staf dites di dua tab browser yang sama, login terbaru akan menimpa session sebelumnya.
+- Gunakan browser normal untuk owner.
+- Gunakan Incognito atau browser/profile terpisah untuk staf.
+- Bersihkan cookie localhost terlebih dahulu sebelum debug redirect login atau akses POS.
+
 Buat `src/app/api/auth/[...all]/route.ts`.
 
 Referensi: https://better-auth.com/docs/adapters/prisma
@@ -431,6 +444,7 @@ Buat 1 staff test di Prisma Studio.
 
 - [ ] Staff login dengan PIN → session terbuat → redirect ke `/pos`
 - [ ] PIN salah 6x → locked 15 menit (persistent, bukan in-memory)
+- [ ] Testing owner vs staf dilakukan di browser context terpisah
 
 ### STEP 1.8 — Utility Libraries
 
@@ -751,8 +765,11 @@ PATCH /api/stores/[slug]/orders/[id]/status
 
 Valid transitions:
 ```
-RECEIVED → WASHING → DRYING → IRONING → PACKING → READY → PICKED_UP
-* → CANCELLED (dari status apapun selain PICKED_UP/DELIVERED)
+RECEIVED → PROCESS → READY → PICKED_UP
+READY → DELIVERED
+PICKED_UP → CLOSED
+DELIVERED → CLOSED
+* → CANCELLED (dari status apapun selain PICKED_UP/DELIVERED/CLOSED)
 ```
 
 - [ ] Status update bekerja sesuai pipeline

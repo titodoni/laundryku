@@ -1,4 +1,6 @@
 import { db } from "@/lib/db";
+import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { TenantLoginForm } from "./login-form";
 
@@ -19,11 +21,24 @@ export default async function TenantLoginPage({ params }: TenantLoginPageProps) 
   }
 
   return (
-    <main className="container flex min-h-screen max-w-md flex-col justify-center py-10">
-      <p className="text-sm font-semibold text-primary">Login toko</p>
-      <h1 className="mt-2 text-3xl font-bold">{store.name}</h1>
-      <p className="mt-3 text-sm text-muted-foreground">{store.address}</p>
-      <TenantLoginForm slug={params.slug} />
+    <main className="flex min-h-screen flex-col bg-gradient-soft">
+      <div className="container py-4">
+        <Link href={`/${params.slug}`} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="h-4 w-4" /> Kembali
+        </Link>
+      </div>
+      <div className="flex flex-1 items-center justify-center p-4">
+        <div className="w-full max-w-md rounded-2xl border bg-card p-6 shadow-elegant">
+          <div className="text-center">
+            <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-gradient-primary font-bold text-primary-foreground shadow-glow">
+              {store.name.slice(0, 1).toUpperCase()}
+            </div>
+            <h1 className="mt-4 font-display text-2xl font-bold">Masuk ke {store.name}</h1>
+            <p className="mt-1 text-sm text-muted-foreground">{store.address}</p>
+          </div>
+          <TenantLoginForm slug={params.slug} />
+        </div>
+      </div>
     </main>
   );
 }

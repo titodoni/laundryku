@@ -16,7 +16,25 @@ export async function POST(
 ) {
   try {
     const { slug } = params;
-    const parsed = staffLoginSchema.safeParse(await request.json());
+    const rawBody = await request.text();
+    if (!rawBody.trim()) {
+      return NextResponse.json(
+        { success: false, error: "Nomor HP dan PIN wajib diisi" },
+        { status: 400 }
+      );
+    }
+
+    let body: unknown;
+    try {
+      body = JSON.parse(rawBody);
+    } catch {
+      return NextResponse.json(
+        { success: false, error: "Format permintaan tidak valid" },
+        { status: 400 }
+      );
+    }
+
+    const parsed = staffLoginSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
         { success: false, error: "Nomor HP dan PIN wajib diisi" },
@@ -28,7 +46,7 @@ export async function POST(
     // 1. Find store by slug
     const store = await db.store.findUnique({
       where: { slug },
-      include: { branches: true },
+      select: { id: true },
     });
 
     if (!store) {
@@ -43,11 +61,36 @@ export async function POST(
 
     // 3. Find staff member by phone + store
     const staff = await db.staffMember.findFirst({
-      where: { storeId: store.id, isActive: true, user: { phone } },
-      include: { user: true, branch: true },
+      where: { storeId: store.id, user: { phone } },
+      select: {
+        userId: true,
+        branchId: true,
+        role: true,
+        isActive: true,
+        pinHash: true,
+        user: {
+          select: {
+            name: true,
+          },
+        },
+      },
     });
 
-    if (!staff || !staff.pinHash) {
+    if (!staff) {
+      return NextResponse.json(
+        { success: false, error: "Nomor HP atau PIN salah" },
+        { status: 401 }
+      );
+    }
+
+    if (!staff.isActive) {
+      return NextResponse.json(
+        { success: false, error: "Akun staf tidak aktif" },
+        { status: 403 }
+      );
+    }
+
+    if (!staff.pinHash) {
       return NextResponse.json(
         { success: false, error: "Nomor HP atau PIN salah" },
         { status: 401 }
@@ -74,7 +117,7 @@ export async function POST(
     }
 
     // 6. Create Better Auth session manually
-    const { cookie } = await createStaffSession(staff.userId);
+    const { cookies } = await createStaffSession(staff.userId);
 
     // 7. Clear attempts on success
     await clearPinAttempts(phone, staff.branchId);
@@ -90,12 +133,35 @@ export async function POST(
         },
       },
     });
-    response.cookies.set(cookie.name, cookie.value, {
-      ...cookie.attributes,
-      sameSite: cookie.attributes.sameSite?.toString().toLowerCase() as "lax" | "strict" | "none" | undefined,
+    response.cookies.set(cookies.sessionToken.name, cookies.sessionToken.value, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: cookies.sessionToken.attributes.maxAge,
     });
+    response.cookies.set(cookies.sessionData.name, cookies.sessionData.value, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: cookies.sessionData.attributes.maxAge,
+    });
+    if (process.env.NODE_ENV === "development") {
+      console.log("[staff-login] session cookies updated", {
+        sessionTokenCookie: cookies.sessionToken.name,
+        sessionDataCookieCleared: cookies.sessionData.name,
+        userId: staff.userId,
+        branchId: staff.branchId,
+      });
+    }
     return response;
-  } catch {
+  } catch (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.error("[staff-login] failed", error);
+      console.error("[staff-login] error", error);
+    }
+
     return NextResponse.json(
       { success: false, error: "Login gagal" },
       { status: 500 }

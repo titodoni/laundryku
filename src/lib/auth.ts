@@ -87,17 +87,28 @@ export async function createStaffSession(userId: string) {
   });
 
   const context = await auth.$context;
-  const cookie = context.authCookies.sessionToken;
+  const sessionTokenCookie = context.authCookies.sessionToken;
+  const sessionDataCookie = context.authCookies.sessionData;
   const signedToken = `${session.token}.${await makeSignature(session.token, context.secret)}`;
 
   return {
     session,
-    cookie: {
-      name: cookie.name,
-      value: signedToken,
-      attributes: {
-        ...cookie.attributes,
-        maxAge: 60 * 60 * 24 * 7,
+    cookies: {
+      sessionToken: {
+        name: sessionTokenCookie.name,
+        value: signedToken,
+        attributes: {
+          ...sessionTokenCookie.attributes,
+          maxAge: 60 * 60 * 24 * 7,
+        },
+      },
+      sessionData: {
+        name: sessionDataCookie.name,
+        value: "",
+        attributes: {
+          ...sessionDataCookie.attributes,
+          maxAge: 0,
+        },
       },
     },
   };

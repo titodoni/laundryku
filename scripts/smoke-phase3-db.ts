@@ -246,12 +246,18 @@ async function main() {
     assert.equal(order.remainingAmount, totalAmount - 10000);
     assert.equal(order.items.length, 2);
 
-    assert.equal(isValidTransition("RECEIVED", "WASHING"), true);
-    const washingOrder = await db.order.update({
+    assert.equal(isValidTransition("RECEIVED", "PROCESS"), true);
+    const processingOrder = await db.order.update({
       where: { id: order.id },
-      data: { status: "WASHING" },
+      data: { status: "PROCESS" },
     });
-    assert.equal(washingOrder.status, "WASHING");
+    assert.equal(processingOrder.status, "PROCESS");
+    assert.equal(isValidTransition("PROCESS", "READY"), true);
+    const readyOrder = await db.order.update({
+      where: { id: order.id },
+      data: { status: "READY" },
+    });
+    assert.equal(readyOrder.status, "READY");
 
     const settlementError = validateSettlement(order.paymentStatus, order.remainingAmount, order.remainingAmount);
     assert.equal(settlementError, null);
@@ -285,43 +291,26 @@ async function main() {
     assert.equal(settledOrder.remainingAmount, 0);
     assert.equal(settledOrder.paidAmount, totalAmount);
 
-    const cancellationError = validateCancellation("READY");
-    assert.equal(cancellationError, null);
-    const cancellationState = getCancellationState("READY", settledOrder.paidAmount, "Pelanggan batal ambil");
-    const cancelledAt = new Date();
-
-    const cancelledOrder = await db.$transaction(async (tx) => {
-      await tx.payment.create({
-        data: {
-          storeId: created.store.id,
-          orderId: settledOrder.id,
-          paymentMethodId: created.cash.id,
-          amount: cancellationState.refundAmount,
-          status: "REFUNDED",
-          paidAt: cancelledAt,
-          notes: "Refund smoke",
-        },
-      });
-
-      return tx.order.update({
-        where: { id: settledOrder.id },
-        data: {
-          status: cancellationState.status,
-          cancelledAt,
-          cancelReason: cancellationState.cancelReason,
-          deletedAt: cancelledAt,
-          paymentStatus: cancellationState.paymentStatus ?? settledOrder.paymentStatus,
-        },
-        include: {
-          payments: true,
-        },
-      });
+    assert.equal(isValidTransition("READY", "PICKED_UP"), true);
+    const pickedUpOrder = await db.order.update({
+      where: { id: order.id },
+      data: {
+        status: "PICKED_UP",
+        completedAt: new Date(),
+      },
     });
-
-    assert.equal(cancelledOrder.status, "CANCELLED");
-    assert.equal(cancelledOrder.paymentStatus, "REFUNDED");
-    assert.equal(cancelledOrder.cancelReason, "Pelanggan batal ambil");
-    assert.equal(cancelledOrder.payments.some((payment) => payment.amount < 0), true);
+    assert.equal(pickedUpOrder.status, "PICKED_UP");
+    assert.equal(isValidTransition("PICKED_UP", "CLOSED"), true);
+    const closedOrder = await db.order.update({
+      where: { id: order.id },
+      data: { status: "CLOSED" },
+    });
+    assert.equal(closedOrder.status, "CLOSED");
+    assert.equal(validateCancellation("READY"), null);
+    assert.equal(validateCancellation("CLOSED"), "Pesanan ini tidak bisa dibatalkan lagi");
+    const cancellationState = getCancellationState("READY", settledOrder.paidAmount, "Pelanggan batal ambil");
+    assert.equal(cancellationState.status, "CANCELLED");
+    assert.equal(cancellationState.paymentStatus, "REFUNDED");
 
     console.log("phase3 db smoke ok");
     console.log(`orderNumber=${orderNumber}`);

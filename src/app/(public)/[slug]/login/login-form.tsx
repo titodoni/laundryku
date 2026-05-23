@@ -2,11 +2,9 @@
 
 import { authClient } from "@/lib/auth-client";
 import { Chrome, LockKeyhole } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 
 export function TenantLoginForm({ slug }: { slug: string }) {
-  const router = useRouter();
   const [tab, setTab] = useState<"owner" | "staff">("staff");
   const [phone, setPhone] = useState("");
   const [pin, setPin] = useState("");
@@ -32,16 +30,25 @@ export function TenantLoginForm({ slug }: { slug: string }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ phone, pin }),
     });
-    const payload = await response.json();
+
+    const raw = await response.text();
+    let payload: { success?: boolean; error?: string } = {};
+    if (raw) {
+      try {
+        payload = JSON.parse(raw) as { success?: boolean; error?: string };
+      } catch {
+        payload = {};
+      }
+    }
+
     setLoading(false);
 
     if (!response.ok || !payload.success) {
-      setError(payload.error || "Login staf gagal");
+      setError(payload.error || "Login staf gagal. Silakan coba lagi.");
       return;
     }
 
-    router.push(`/${slug}/pos`);
-    router.refresh();
+    window.location.href = `/${slug}/pos`;
   }
 
   return (

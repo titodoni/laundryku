@@ -313,13 +313,11 @@ model PaymentMethod {
 
 enum OrderStatus {
   RECEIVED
-  WASHING
-  DRYING
-  IRONING
-  PACKING
+  PROCESS
   READY
   PICKED_UP
   DELIVERED
+  CLOSED
   CANCELLED
 }
 
@@ -596,7 +594,7 @@ model ActivityLog {
 - `Order.paymentStatus`, `paidAmount`, `remainingAmount`, dan `settledAt` cocok untuk flow `LUNAS`, `DP`, dan `BELUM_BAYAR`.
 - `Order.cancelledAt`, `cancelReason`, `deletedAt`, dan `Payment.amount` negatif cocok untuk flow pembatalan + refund.
 - `Order.packagingLabelPrinted` cocok dengan endpoint `POST /api/stores/[slug]/orders/[id]/label-printed`.
-- `Order.status` + `ActivityLog` cocok untuk pipeline progress Phase 3.
+- `Order.status` + `ActivityLog` cocok untuk pipeline progress Phase 3.5 dengan flow operasional sederhana `RECEIVED -> PROCESS -> READY -> PICKED_UP/DELIVERED -> CLOSED`.
 
 ---
 

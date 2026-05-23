@@ -94,6 +94,7 @@
 - [ ] API: `POST /api/stores/[slug]/staff-login` — custom bcrypt compare + manual session
 - [ ] Rate limit: 5 attempts / 15 min (PinAttempt table)
 - [ ] Better Auth credential plugin NOT used
+- [ ] Local auth testing uses separate browser contexts for owner and staff because one Better Auth session cookie is shared per browser profile
 
 ### DONE Gate
 - [ ] Owner can register with Google → create store → dashboard
@@ -101,6 +102,12 @@
 - [ ] Staff PIN lockout after 5 attempts
 - [ ] `/{slug}` 404 for unknown slugs
 - [ ] `npx tsc --noEmit` passes
+
+### Local Auth Testing Note
+- Owner and staff login share the same Better Auth browser session cookie in local development.
+- Do not test owner and staff in two tabs of the same browser profile.
+- Use normal browser for owner, incognito or a separate browser/profile for staff.
+- Clear localhost cookies first when debugging redirect loops or `no active staff access`.
 
 ---
 
@@ -205,7 +212,7 @@
 | Route | Description |
 |-------|-------------|
 | `/{slug}/pos` | Staff POS flow with customer lookup, service tabs, payment step, and order submit |
-| `/{slug}/pos/orders` | Daftar pesanan hari ini + progress update + DP settlement + cancellation |
+| `/{slug}/pos/orders` | Daftar pesanan hari ini + progress update + pickup/close flow + DP settlement + cancellation |
 | `/{slug}/orders/[orderNumber]/receipt` | Struk order dengan QR code tracking |
 | `/{slug}/orders/[orderNumber]/label` | Label packaging print 80mm |
 
@@ -308,6 +315,10 @@ npm run smoke:phase3:db
 - [ ] Error handling: `{ success, data?, error? }`, loading skeletons, error boundary, 404
 - [ ] Security: cross-tenant isolation, rate limiting, no secrets in code
 - [ ] Performance: POS TTI < 2s, finance API < 500ms
+- [x] Landing page revamp — 8 sections (Hero, Social Proof, Pain Points, How It Works, Features, Pricing, FAQ, Closing CTA)
+- [x] Legal pages — `/syarat-layanan`, `/kebijakan-privasi`, `/keamanan-data`
+- [x] Footer — single row with legal links
+- [x] Register form — legal terms hyperlinks
 - [ ] Vercel deploy with all env vars
 - [ ] Production smoke tests
 

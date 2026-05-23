@@ -1,4 +1,11 @@
 import { z } from "zod";
+import {
+  normalizeOrderStatus,
+  orderLifecycleStatuses,
+  orderTransitionMap,
+  terminalOrderStatuses,
+  type OrderLifecycleStatus,
+} from "@/lib/order-status";
 
 /**
  * Zod validation schemas for order-related API endpoints.
@@ -88,42 +95,24 @@ export const cancelOrderSchema = z.object({
 });
 
 export const updateOrderStatusSchema = z.object({
-  newStatus: z.enum([
-    "RECEIVED",
-    "WASHING",
-    "DRYING",
-    "IRONING",
-    "PACKING",
-    "READY",
-    "PICKED_UP",
-    "DELIVERED",
-    "CANCELLED",
-  ]),
+  newStatus: z.enum(orderLifecycleStatuses),
   notes: z.string().max(500).optional(),
 });
 
 /** Valid status transitions */
-export const validTransitions: Record<string, string[]> = {
-  RECEIVED: ["WASHING", "CANCELLED"],
-  WASHING: ["DRYING", "CANCELLED"],
-  DRYING: ["IRONING", "CANCELLED"],
-  IRONING: ["PACKING", "CANCELLED"],
-  PACKING: ["READY", "CANCELLED"],
-  READY: ["PICKED_UP", "DELIVERED"],
-  PICKED_UP: [],
-  DELIVERED: [],
-  CANCELLED: [],
-};
+export const validTransitions: Record<OrderLifecycleStatus, OrderLifecycleStatus[]> = orderTransitionMap;
 
-export const closedOrderStatuses = ["PICKED_UP", "DELIVERED", "CANCELLED"];
+export const closedOrderStatuses = [...terminalOrderStatuses];
 
 export function isValidTransition(
   currentStatus: string,
   newStatus: string
 ): boolean {
-  return validTransitions[currentStatus]?.includes(newStatus) ?? false;
+  const normalizedCurrentStatus = normalizeOrderStatus(currentStatus);
+  const normalizedNewStatus = normalizeOrderStatus(newStatus);
+  return validTransitions[normalizedCurrentStatus]?.includes(normalizedNewStatus) ?? false;
 }
 
 export function isClosedOrderStatus(status: string): boolean {
-  return closedOrderStatuses.includes(status);
+  return closedOrderStatuses.includes(status as (typeof terminalOrderStatuses)[number]);
 }

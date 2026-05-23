@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { normalizeOrderStatus, orderStatusLabels, type OrderLifecycleStatus } from "@/lib/order-status";
 import { serializePaymentMethod, type PaymentMethodSummary } from "@/lib/payment-methods";
 import {
   formatIDR,
@@ -10,18 +11,6 @@ import {
 } from "@/lib/services";
 import { headers } from "next/headers";
 import type { Prisma } from "@prisma/client";
-
-export const orderStatusLabels: Record<string, string> = {
-  RECEIVED: "Diterima",
-  WASHING: "Cuci",
-  DRYING: "Kering",
-  IRONING: "Setrika",
-  PACKING: "Packing",
-  READY: "Siap Diambil",
-  PICKED_UP: "Diambil",
-  DELIVERED: "Diantar",
-  CANCELLED: "Dibatalkan",
-};
 
 export const paymentStatusLabels: Record<string, string> = {
   UNPAID: "Belum Bayar",
@@ -56,7 +45,7 @@ export type CustomerSummary = {
 export type OrderSummary = {
   id: string;
   orderNumber: string;
-  status: string;
+  status: OrderLifecycleStatus;
   statusLabel: string;
   paymentStatus: string;
   paymentStatusLabel: string;
@@ -143,6 +132,9 @@ export type OrderRecord = Prisma.OrderGetPayload<{
 export async function requireStaffRouteAccess(slug: string): Promise<StaffRouteContext> {
   const session = await auth.api.getSession({ headers: headers() });
   if (!session?.user?.id) {
+    if (process.env.NODE_ENV === "development") {
+      console.log("[pos-auth] no session for slug", slug);
+    }
     return { ok: false, status: 401, error: "Silakan login terlebih dahulu" };
   }
 
@@ -180,6 +172,51 @@ export async function requireStaffRouteAccess(slug: string): Promise<StaffRouteC
   });
 
   if (!staff) {
+    if (process.env.NODE_ENV === "development") {
+      const staffAssignments = await db.staffMember.findMany({
+        where: {
+          userId: session.user.id,
+        },
+        select: {
+          id: true,
+          isActive: true,
+          store: {
+            select: {
+              slug: true,
+            },
+          },
+          branch: {
+            select: {
+              id: true,
+              isActive: true,
+            },
+          },
+        },
+      });
+      const sameStoreAssignments = staffAssignments.filter((assignment) => assignment.store.slug === slug);
+      const debugReason =
+        staffAssignments.length === 0
+          ? "no-staff-for-session-user"
+          : sameStoreAssignments.length === 0
+            ? "staff-linked-to-different-store"
+            : sameStoreAssignments.every((assignment) => !assignment.isActive)
+              ? "staff-in-store-inactive"
+              : sameStoreAssignments.every((assignment) => !assignment.branch.isActive)
+                ? "staff-branch-inactive"
+                : "staff-access-mismatch";
+      console.log("[pos-auth] no active staff access", {
+        slug,
+        userId: session.user.id,
+        reason: debugReason,
+        assignments: staffAssignments.map((assignment) => ({
+          id: assignment.id,
+          storeSlug: assignment.store.slug,
+          isActive: assignment.isActive,
+          branchId: assignment.branch.id,
+          branchIsActive: assignment.branch.isActive,
+        })),
+      });
+    }
     return { ok: false, status: 404, error: "Akses staf tidak ditemukan" };
   }
 
@@ -245,6 +282,7 @@ export function serializeCustomer(customer: {
 }
 
 export function serializeOrder(order: OrderRecord): OrderSummary {
+  const normalizedStatus = normalizeOrderStatus(order.status);
   const itemSummary = order.items
     .map((item) => {
       const quantityLabel =
@@ -258,8 +296,8 @@ export function serializeOrder(order: OrderRecord): OrderSummary {
   return {
     id: order.id,
     orderNumber: order.orderNumber,
-    status: order.status,
-    statusLabel: orderStatusLabels[order.status] ?? order.status,
+    status: normalizedStatus,
+    statusLabel: orderStatusLabels[normalizedStatus] ?? normalizedStatus,
     paymentStatus: order.paymentStatus,
     paymentStatusLabel: paymentStatusLabels[order.paymentStatus] ?? order.paymentStatus,
     totalAmount: order.totalAmount,

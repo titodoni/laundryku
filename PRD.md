@@ -165,7 +165,7 @@ If taken: "melati-clean-2", "melati-clean-3", etc.
    a. Receipt (thermal or screen)
    b. Packaging label (order number, customer name, services summary, date)
 7. Staff updates status as order progresses:
-   received → washing → drying → ironing → packing → ready → picked_up
+   received → process → ready → picked_up / delivered → closed
 ```
 
 **Implementation note (accepted v1 detail):**
@@ -180,8 +180,7 @@ If taken: "melati-clean-2", "melati-clean-3", etc.
 ## 8. Order Status Pipeline
 
 ```
-received → washing → drying → ironing → packing → ready → picked_up
-                                                          ↘ delivered (if courier)
+received → process → ready → picked_up / delivered → closed
 ```
 
 Each status change:
@@ -233,6 +232,12 @@ POST /api/stores/[slug]/staff-login
 - Persistent until logout or cookie clear.
 - Staff session scoped to branch.
 - Owner session scoped to store.
+
+**Local development testing note:**
+- Owner and staff currently share the same Better Auth browser session cookie.
+- Testing owner and staff in different tabs of the same browser profile will overwrite the previous session.
+- Use normal browser for owner, incognito or a separate browser/profile for staff.
+- Clear localhost cookies before debugging auth redirects or unexpected role switches.
 
 ---
 

@@ -1,18 +1,9 @@
 import type { ServiceSummary } from "@/lib/services";
 import { getServiceDisplayPrice } from "@/lib/services";
+import { isNonCancellableOrderStatus, type OrderLifecycleStatus } from "@/lib/order-status";
 
 export type PaymentTypeInput = "LUNAS" | "DP" | "BELUM_BAYAR";
 export type PaymentStatusOutput = "PAID" | "PARTIAL" | "UNPAID";
-export type OrderLifecycleStatus =
-  | "RECEIVED"
-  | "WASHING"
-  | "DRYING"
-  | "IRONING"
-  | "PACKING"
-  | "READY"
-  | "PICKED_UP"
-  | "DELIVERED"
-  | "CANCELLED";
 
 export type DraftOrderItemInput = {
   service: ServiceSummary;
@@ -95,7 +86,7 @@ export function getSettlementState(paidAmount: number, remainingAmount: number) 
 }
 
 export function validateCancellation(status: OrderLifecycleStatus) {
-  if (["PICKED_UP", "DELIVERED", "CANCELLED"].includes(status)) {
+  if (isNonCancellableOrderStatus(status)) {
     return "Pesanan ini tidak bisa dibatalkan lagi";
   }
 
